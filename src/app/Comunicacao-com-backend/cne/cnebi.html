@@ -9,7 +9,7 @@
     <p>Utilize a sua webcam para capturar imagens nítidas da frente e do verso do seu documento oficial.</p>
 
     <video #video autoplay playsinline></video>
-    <button (click)="capture()">
+    <button (click)="capture()" [disabled]="enviando">
       {{ step === 'front' ? 'Capturar Frente' : 'Capturar Verso' }}
     </button>
 
@@ -17,12 +17,34 @@
 
     <div *ngIf="frontImage">
       <h3>Frente capturada:</h3>
-      <img [src]="frontImage" />
+      <img [src]="frontImage" style="max-width: 300px;" />
     </div>
 
     <div *ngIf="backImage">
       <h3>Verso capturado:</h3>
-      <img [src]="backImage" />
+      <img [src]="backImage" style="max-width: 300px;" />
+    </div>
+
+    <!-- Resultados da validação por IA -->
+    <div *ngIf="validacaoFrente">
+      <h3>🔍 Validação da Frente (IA)</h3>
+      <p><strong>BI Angolano:</strong> {{ validacaoFrente.e_bi_Angolano ? '✅ Sim' : '❌ Não' }}</p>
+      <p><strong>Originalidade:</strong> {{ validacaoFrente.e_original ? 'Original' : 'Fotocópia' }}</p>
+      <p><strong>Motivo:</strong> {{ validacaoFrente.motivo }}</p>
+      <p><strong>Número do BI:</strong> {{ validacaoFrente.numero_bi || 'Não identificado' }}</p>
+      <p><strong>Confiança:</strong> {{ validacaoFrente.confianca }}</p>
+    </div>
+
+    <div *ngIf="validacaoVerso">
+      <h3>🔍 Validação do Verso (IA)</h3>
+      <p><strong>BI Angolano:</strong> {{ validacaoVerso.e_bi_Angolano ? '✅ Sim' : '❌ Não' }}</p>
+      <p><strong>Originalidade:</strong> {{ validacaoVerso.e_original ? 'Original' : 'Fotocópia' }}</p>
+      <p><strong>Motivo:</strong> {{ validacaoVerso.motivo }}</p>
+      <p><strong>Número do BI:</strong> {{ validacaoVerso.numero_bi || 'Não identificado' }}</p>
+    </div>
+
+    <div *ngIf="enviando">
+      <p>⏳ A processar imagem com IA...</p>
     </div>
 
     <div *ngIf="statusMsg">
@@ -30,9 +52,11 @@
       <p>{{ statusMsg }}</p>
     </div>
 
-    <div *ngIf="frontImage && backImage">
-      <button (click)="confirmarEnvio()">Confirmar e Enviar Documentos</button>
-      <button>Cancelar e voltar ao início</button>
+    <div *ngIf="frontImage && backImage && !enviando">
+      <button (click)="confirmarEnvio()" [disabled]="!validacaoFrente?.e_bi_Angolano || !validacaoVerso?.e_bi_Angolano">
+        Confirmar e Enviar Documentos
+      </button>
+      <button (click)="router.navigate(['/inicio'])">Cancelar e voltar ao início</button>
     </div>
   </main>
 

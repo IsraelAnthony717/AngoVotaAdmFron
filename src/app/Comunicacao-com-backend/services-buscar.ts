@@ -4,7 +4,6 @@ import { Observable } from 'rxjs';
 import { io, Socket } from 'socket.io-client'
 import { environment } from '../../environment/environment';
 
-
 @Injectable({
   providedIn: 'root'
 })
@@ -116,18 +115,14 @@ export class ServicesBuscar {
   // HTTP — Candidatos
   // ============================================================
 
-  // GET /candidatos — Busca a lista de candidatos
   BuscarCandidatos(): Observable<any[]> {
     return this.http.get<any[]>(`${this.api}/candidatos`, { withCredentials: true });
   }
 
-  // POST /candidatos — Cria um candidato com foto e fundo (multipart/form-data)
-  // NÃO definir Content-Type — o browser adiciona o boundary automaticamente
   CriarCandidato(formData: FormData): Observable<any> {
     return this.http.post(`${this.api}/candidatos/criar`, formData, { withCredentials: true });
   }
 
-  // DELETE /candidatos/:id — Remove um candidato pelo ID
   ApagarCandidato(id: number): Observable<any> {
     return this.http.delete(`${this.api}/candidatos/apagar/${id}`, { withCredentials: true });
   }
@@ -136,8 +131,30 @@ export class ServicesBuscar {
   // HTTP — Votar
   // ============================================================
 
-  // POST /votar — Regista o voto do eleitor autenticado
   Votar(candidato_id: number): Observable<any> {
     return this.http.post(`${this.api}/votar`, { candidato_id }, { withCredentials: true });
+  }
+
+  // ============================================================
+  // NOVO: VALIDAÇÃO DE BI COM IA (MISTRAL)
+  // ============================================================
+
+  validarBIComImagem(imagemBase64: string): Observable<any> {
+    const blob = this.base64ToBlob(imagemBase64);
+    const formData = new FormData();
+    formData.append('imagem', blob, 'bi.jpg');
+    return this.http.post(`${this.api}/validar-bi`, formData, { withCredentials: true });
+  }
+
+  private base64ToBlob(base64: string): Blob {
+    const partes = base64.split(',');
+    const tipoMime = partes[0].match(/:(.*?);/)?.[1] || 'image/png';
+    const byteString = atob(partes[1]);
+    const arrayBuffer = new ArrayBuffer(byteString.length);
+    const uint8Array = new Uint8Array(arrayBuffer);
+    for (let i = 0; i < byteString.length; i++) {
+      uint8Array[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([uint8Array], { type: tipoMime });
   }
 }
