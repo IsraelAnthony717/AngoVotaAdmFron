@@ -1,0 +1,42 @@
+<div class="arroz">
+  <header class="Bara">
+    <h2>Portal do Cidadão</h2>
+    <h6>Serviços Digitais Identidade</h6>
+  </header>
+
+  <main>
+    <h2>Captura de Bilhete de Identidade</h2>
+    <p>Utilize a sua webcam para capturar imagens nítidas da frente e do verso do seu documento oficial.</p>
+
+    <video #video autoplay playsinline></video>
+    <button (click)="capture()">
+      {{ step === 'front' ? 'Capturar Frente' : 'Capturar Verso' }}
+    </button>
+
+    <canvas #canvas hidden></canvas>
+
+    <div *ngIf="frontImage">
+      <h3>Frente capturada:</h3>
+      <img [src]="frontImage" />
+    </div>
+
+    <div *ngIf="backImage">
+      <h3>Verso capturado:</h3>
+      <img [src]="backImage" />
+    </div>
+
+    <div *ngIf="statusMsg">
+      <h3>Status:</h3>
+      <p>{{ statusMsg }}</p>
+    </div>
+
+    <div *ngIf="frontImage && backImage">
+      <button (click)="confirmarEnvio()">Confirmar e Enviar Documentos</button>
+      <button>Cancelar e voltar ao início</button>
+    </div>
+  </main>
+
+  <footer>
+    © 2027 Portal do Cidadão - Governo Digital - Todos os direitos reservados
+  </footer>
+</div>
