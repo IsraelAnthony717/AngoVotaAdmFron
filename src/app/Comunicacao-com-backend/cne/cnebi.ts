@@ -1,9 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { AfterViewInit, Component, ViewChild, ElementRef, OnDestroy } from '@angular/core';
 import { ServiceEnviar } from '../service-enviar';
+import { ServicesBuscar } from '../services-buscar'; // <-- adicione
 import { Router } from '@angular/router';
-
-type Step = 'front' | 'back';
 
 @Component({
   selector: 'app-cnebi',
@@ -17,12 +16,19 @@ export class Cnebi implements AfterViewInit, OnDestroy {
   @ViewChild('canvas') canvas!: ElementRef<HTMLCanvasElement>;
 
   stream!: MediaStream;
-  step: Step = 'front';
+  step: 'front' | 'back' = 'front';
   frontImage: string | null = null;
   backImage: string | null = null;
   statusMsg: string = "";
+  validacaoFrente: any = null;
+  validacaoVerso: any = null;
+  enviando: boolean = false;
 
-  constructor(private serviceEnviar: ServiceEnviar, private rota: Router) {}
+  constructor(
+    private serviceEnviar: ServiceEnviar,
+    public router: Router,
+    private servicesBuscar: ServicesBuscar   // <-- injete
+  ) {}
 
   async ngAfterViewInit() {
     this.stream = await navigator.mediaDevices.getUserMedia({
@@ -34,60 +40,49 @@ export class Cnebi implements AfterViewInit, OnDestroy {
   async capture() {
     const video = this.video.nativeElement;
     const canvas = this.canvas.nativeElement;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0);
-
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const imagemBase64 = canvas.toDataURL('image/png');
 
     if (this.step === 'front') {
-      this.frontImage = canvas.toDataURL('image/png');
-      if (!this.verificarDocumento(imageData, canvas.width, canvas.height)) {
-        this.statusMsg = "⚠️ Frente suspeita";
+      this.frontImage = imagemBase64;
+      await this.validarImagem(imagemBase64, 'frente');
+      if (this.validacaoFrente?.e_bi_Angolano && !this.validacaoFrente?.foto_copia) {
+        this.step = 'back';
+        this.statusMsg = '✅ Frente válida. Capture o verso.';
       } else {
-        this.statusMsg = "✅ Frente válida";
+        this.statusMsg = '❌ Frente inválida: ' + (this.validacaoFrente?.motivo || 'Documento não aceite');
       }
-      this.step = 'back';
     } else {
-      this.backImage = canvas.toDataURL('image/png');
-      if (!this.verificarDocumento(imageData, canvas.width, canvas.height)) {
-        this.statusMsg = "⚠️ Verso suspeito";
+      this.backImage = imagemBase64;
+      await this.validarImagem(imagemBase64, 'verso');
+      if (this.validacaoVerso?.e_bi_Angolano && !this.validacaoVerso?.foto_copia) {
+        this.statusMsg = '✅ Documento completo e válido!';
+        this.stopCamera();
       } else {
-        this.statusMsg = "✅ Verso válido";
+        this.statusMsg = '❌ Verso inválido: ' + (this.validacaoVerso?.motivo || 'Documento não aceite');
       }
-      this.stopCamera();
     }
   }
 
-  // 🔹 Função de verificação documental com limiares ajustados
-  private verificarDocumento(imageData: ImageData, width: number, height: number): boolean {
-    // 1. Contraste
-    let min = 255, max = 0;
-    for (let i = 0; i < imageData.data.length; i += 4) {
-      const brilho = (imageData.data[i] + imageData.data[i+1] + imageData.data[i+2]) / 3;
-      if (brilho < min) min = brilho;
-      if (brilho > max) max = brilho;
+  private async validarImagem(imagemBase64: string, lado: string) {
+    this.enviando = true;
+    this.statusMsg = `Validando ${lado}...`;
+    try {
+      const resultado = await this.servicesBuscar.validarBIComImagem(imagemBase64).toPromise();
+      if (lado === 'frente') this.validacaoFrente = resultado;
+      else this.validacaoVerso = resultado;
+      this.statusMsg = `${lado}: ${resultado?.e_bi_Angolano ? 'Aceito' : 'Rejeitado'}`;
+    } catch (err) {
+      console.error(err);
+      this.statusMsg = `Erro ao validar ${lado}.`;
+    } finally {
+      this.enviando = false;
     }
-    const contraste = max - min;
-    const contrasteOk = contraste > 20; // antes era 40
-
-    // 2. Proporção
-    const proporcao = width / height;
-    const proporcaoOk = proporcao > 1.3 && proporcao < 1.8; // intervalo mais largo
-
-    // 3. Bordas
-    let bordas = 0;
-    for (let i = 0; i < imageData.data.length - 4; i += 4) {
-      const brilho1 = (imageData.data[i] + imageData.data[i+1] + imageData.data[i+2]) / 3;
-      const brilho2 = (imageData.data[i+4] + imageData.data[i+5] + imageData.data[i+6]) / 3;
-      if (Math.abs(brilho1 - brilho2) > 40) bordas++; // antes era 50
-    }
-    const bordasOk = bordas > (width * height * 0.005); // antes era 0.01
-
-    return contrasteOk && proporcaoOk && bordasOk;
   }
 
   stopCamera() {
@@ -99,7 +94,13 @@ export class Cnebi implements AfterViewInit, OnDestroy {
   }
 
   confirmarEnvio() {
-    //this.serviceEnviar.DadosEnviados({ frente: this.frontImage, verso: this.backImage });
-    //this.rota.navigate(['/reconhecimento']);
+    if (this.validacaoFrente?.e_bi_Angolano && this.validacaoVerso?.e_bi_Angolano &&
+        !this.validacaoFrente?.foto_copia && !this.validacaoVerso?.foto_copia) {
+      const numeroBI = this.validacaoFrente.numero_bi || this.validacaoVerso.numero_bi;
+      this.serviceEnviar.DadosEnviados(numeroBI);
+      this.router.navigate(['/reconhecimento']);
+    } else {
+      alert('Documento não validado pela IA. Capture novamente.');
+    }
   }
 }

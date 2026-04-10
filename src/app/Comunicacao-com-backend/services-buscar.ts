@@ -1,9 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { io, Socket } from 'socket.io-client'
+import { io, Socket } from 'socket.io-client';
 import { environment } from '../../environment/environment';
-
 
 @Injectable({
   providedIn: 'root'
@@ -15,67 +14,65 @@ export class ServicesBuscar {
 
   constructor(private http: HttpClient) {
     this.socket = io(environment.apiUrl, { withCredentials: true, transports: ['websocket', 'polling'] });
-    this.socket.on('connect', () => console.log('deu para usar o Socket'));
-    this.socket.on('connect_error', (err) => console.log('Não deu', err));
+    this.socket.on('connect', () => console.log('Socket conectado'));
+    this.socket.on('connect_error', (err) => console.log('Erro socket:', err));
   }
 
   // ============================================================
-  // SOCKETS — Dados em tempo real
+  // SOCKETS
   // ============================================================
-
   mostrarEleitoresEmTemporeal(): Observable<any> {
-    return new Observable((Observa) => {
-      this.socket.on('totais_Eleitores', (dados) => Observa.next(dados));
+    return new Observable((obs) => {
+      this.socket.on('totais_Eleitores', (dados) => obs.next(dados));
       return () => this.socket.off('totais_Eleitores');
     });
   }
 
   mostrarTotaisEleitorePorProvincia(): Observable<any> {
-    return new Observable((Observa) => {
-      this.socket.on('totais_Eleitores_Por_Provincia', (dados) => Observa.next(dados));
+    return new Observable((obs) => {
+      this.socket.on('totais_Eleitores_Por_Provincia', (dados) => obs.next(dados));
       return () => this.socket.off('totais_Eleitores_Por_Provincia');
     });
   }
 
   mostrarGraficoFaixaEtariaEmTempoReal(): Observable<any> {
-    return new Observable((Observa) => {
-      this.socket.on('resultadosPorFaixaEtaria', (dados) => Observa.next(dados));
+    return new Observable((obs) => {
+      this.socket.on('resultadosPorFaixaEtaria', (dados) => obs.next(dados));
       return () => this.socket.off('resultadosPorFaixaEtaria');
     });
   }
 
   mostrarGraficoPorGeneroEmTempoReal(): Observable<any> {
-    return new Observable((Observa) => {
-      this.socket.on('resultadosPorGenero', (dados) => Observa.next(dados));
+    return new Observable((obs) => {
+      this.socket.on('resultadosPorGenero', (dados) => obs.next(dados));
       return () => this.socket.off('resultadosPorGenero');
     });
   }
 
   mostrarGraficoPorHoraDeVoto(): Observable<any> {
-    return new Observable((Observa) => {
-      this.socket.on('votoPorHora', (dados) => Observa.next(dados));
+    return new Observable((obs) => {
+      this.socket.on('votoPorHora', (dados) => obs.next(dados));
       return () => this.socket.off('votoPorHora');
     });
   }
 
   mostrarVotosAgrupados(): Observable<any> {
-    return new Observable((Observa) => {
-      this.socket.on('resultadosAgrupados', (dados) => Observa.next(dados));
+    return new Observable((obs) => {
+      this.socket.on('resultadosAgrupados', (dados) => obs.next(dados));
       return () => this.socket.off('resultadosAgrupados');
     });
   }
 
   mostrarGraficoDeProvincias(): Observable<any> {
-    return new Observable((Observa) => {
-      this.socket.on('resultadosProv', (dados) => Observa.next(dados));
+    return new Observable((obs) => {
+      this.socket.on('resultadosProv', (dados) => obs.next(dados));
       return () => this.socket.off('resultadosProv');
     });
   }
 
   // ============================================================
-  // HTTP — Autenticação e perfil
+  // HTTP – Autenticação
   // ============================================================
-
   enviarBI(numeroBI: string): Observable<any> {
     return this.http.post(`${this.api}/cne/auth`, { numeroBI }, { withCredentials: true });
   }
@@ -89,9 +86,8 @@ export class ServicesBuscar {
   }
 
   // ============================================================
-  // HTTP — Estatísticas e gráficos
+  // HTTP – Estatísticas
   // ============================================================
-
   getParticipacaoFaixaEtaria(): Observable<any> {
     return this.http.get(`${this.api}/cne/MostrarEleitoresPorFaixaEtaria`);
   }
@@ -113,31 +109,46 @@ export class ServicesBuscar {
   }
 
   // ============================================================
-  // HTTP — Candidatos
+  // HTTP – Candidatos
   // ============================================================
-
-  // GET /candidatos — Busca a lista de candidatos
   BuscarCandidatos(): Observable<any[]> {
     return this.http.get<any[]>(`${this.api}/candidatos`, { withCredentials: true });
   }
 
-  // POST /candidatos — Cria um candidato com foto e fundo (multipart/form-data)
-  // NÃO definir Content-Type — o browser adiciona o boundary automaticamente
   CriarCandidato(formData: FormData): Observable<any> {
     return this.http.post(`${this.api}/candidatos/criar`, formData, { withCredentials: true });
   }
 
-  // DELETE /candidatos/:id — Remove um candidato pelo ID
   ApagarCandidato(id: number): Observable<any> {
     return this.http.delete(`${this.api}/candidatos/apagar/${id}`, { withCredentials: true });
   }
 
   // ============================================================
-  // HTTP — Votar
+  // HTTP – Votar
   // ============================================================
-
-  // POST /votar — Regista o voto do eleitor autenticado
   Votar(candidato_id: number): Observable<any> {
     return this.http.post(`${this.api}/votar`, { candidato_id }, { withCredentials: true });
+  }
+
+  // ============================================================
+  // VALIDAÇÃO DE BI COM IA (MISTRAL)
+  // ============================================================
+  validarBIComImagem(imagemBase64: string): Observable<any> {
+    const blob = this.base64ToBlob(imagemBase64);
+    const formData = new FormData();
+    formData.append('imagem', blob, 'bi.jpg');
+    return this.http.post(`${this.api}/validar-bi`, formData, { withCredentials: true });
+  }
+
+  private base64ToBlob(base64: string): Blob {
+    const partes = base64.split(',');
+    const tipoMime = partes[0].match(/:(.*?);/)?.[1] || 'image/png';
+    const byteString = atob(partes[1]);
+    const arrayBuffer = new ArrayBuffer(byteString.length);
+    const uint8Array = new Uint8Array(arrayBuffer);
+    for (let i = 0; i < byteString.length; i++) {
+      uint8Array[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([uint8Array], { type: tipoMime });
   }
 }

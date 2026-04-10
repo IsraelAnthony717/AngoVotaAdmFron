@@ -30,6 +30,22 @@
       <p>{{ statusMsg }}</p>
     </div>
 
+    <div *ngIf="validacaoFrente">
+  <h3>Validação da Frente (IA)</h3>
+  <p>BI Angolano: {{ validacaoFrente.e_bi_Angolano ? '✅ Sim' : '❌ Não' }}</p>
+  <p>Original: {{ validacaoFrente.e_original ? 'Sim' : 'Não' }}</p>
+  <p>Motivo: {{ validacaoFrente.motivo }}</p>
+  <p>Número: {{ validacaoFrente.numero_bi || '---' }}</p>
+</div>
+<div *ngIf="validacaoVerso">
+  <h3>Validação do Verso (IA)</h3>
+  <p>BI Angolano: {{ validacaoVerso.e_bi_Angolano ? '✅ Sim' : '❌ Não' }}</p>
+  <p>Motivo: {{ validacaoVerso.motivo }}</p>
+</div>
+<div *ngIf="enviando">
+  <p>⏳ Processando imagem com IA...</p>
+</div>
+
     <div *ngIf="frontImage && backImage">
       <button (click)="confirmarEnvio()">Confirmar e Enviar Documentos</button>
       <button>Cancelar e voltar ao início</button>
