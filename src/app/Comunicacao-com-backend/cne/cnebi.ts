@@ -1,33 +1,40 @@
 import { CommonModule } from '@angular/common';
 import { AfterViewInit, Component, ViewChild, ElementRef, OnDestroy } from '@angular/core';
 import { ServiceEnviar } from '../service-enviar';
-import { ServicesBuscar } from '../services-buscar'; // <-- adicione
 import { Router } from '@angular/router';
+import { ServicesBuscar } from '../services-buscar';
+
+type Step = 'front' | 'back';
+type Status = 'idle' | 'loading' | 'success' | 'error';
 
 @Component({
   selector: 'app-cnebi',
-  standalone: true,
   imports: [CommonModule],
   templateUrl: './cnebi.html',
-  styleUrls: ['./cnebi.css']
+  styleUrl: './cnebi.css',
 })
 export class Cnebi implements AfterViewInit, OnDestroy {
   @ViewChild('video') video!: ElementRef<HTMLVideoElement>;
   @ViewChild('canvas') canvas!: ElementRef<HTMLCanvasElement>;
 
   stream!: MediaStream;
-  step: 'front' | 'back' = 'front';
+  step: Step = 'front';
   frontImage: string | null = null;
   backImage: string | null = null;
-  statusMsg: string = "";
-  validacaoFrente: any = null;
-  validacaoVerso: any = null;
-  enviando: boolean = false;
+
+  // Estado de cada fase
+  frontStatus: Status = 'idle';
+  backStatus: Status = 'idle';
+  frontMensagem: string = '';
+  backMensagem: string = '';
+
+  // Controlo — só avança se frente aprovada
+  frenteAprovada: boolean = false;
 
   constructor(
     private serviceEnviar: ServiceEnviar,
-    public router: Router,
-    private servicesBuscar: ServicesBuscar   // <-- injete
+    private rota: Router,
+    private serviceBuscar: ServicesBuscar
   ) {}
 
   async ngAfterViewInit() {
@@ -37,51 +44,110 @@ export class Cnebi implements AfterViewInit, OnDestroy {
     this.video.nativeElement.srcObject = this.stream;
   }
 
-  async capture() {
+  capture() {
+    // Não deixa capturar verso se frente não foi aprovada
+    if (this.step === 'back' && !this.frenteAprovada) {
+      this.backMensagem = 'Tens de completar a frente com sucesso antes de continuar.';
+      this.backStatus = 'error';
+      return;
+    }
+
     const video = this.video.nativeElement;
     const canvas = this.canvas.nativeElement;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0);
-    const imagemBase64 = canvas.toDataURL('image/png');
+
+    const ctx = canvas.getContext('2d');
+    ctx?.drawImage(video, 0, 0);
 
     if (this.step === 'front') {
-      this.frontImage = imagemBase64;
-      await this.validarImagem(imagemBase64, 'frente');
-      if (this.validacaoFrente?.e_bi_Angolano && !this.validacaoFrente?.foto_copia) {
-        this.step = 'back';
-        this.statusMsg = '✅ Frente válida. Capture o verso.';
-      } else {
-        this.statusMsg = '❌ Frente inválida: ' + (this.validacaoFrente?.motivo || 'Documento não aceite');
-      }
+      this.frontImage = canvas.toDataURL('image/jpeg');
+      this.frontStatus = 'loading';
+      this.frontMensagem = 'A verificar documento...';
+
+      canvas.toBlob(blob => {
+        const ficheiro = new File([blob!], 'bi-frente.jpg', { type: 'image/jpeg' });
+
+        this.serviceBuscar.EnviarFile(ficheiro, 'frente').subscribe({
+          next: (res: any) => {
+            if (!res.e_bi_Angolano || !res.e_original) {
+              this.frontStatus = 'error';
+              this.frontMensagem = res.motivo || 'Documento inválido. Tente novamente.';
+              this.frontImage = null;
+              this.frenteAprovada = false;
+              return;
+            }
+            // Frente aprovada — avança
+            this.frontStatus = 'success';
+            this.frontMensagem = 'Frente verificada com sucesso!';
+            this.frenteAprovada = true;
+            this.step = 'back';
+          },
+          error: (err: any) => {
+            this.frontStatus = 'error';
+            this.frontMensagem = err?.error?.erro || 'Erro ao verificar. Tente novamente.';
+            this.frontImage = null;
+            this.frenteAprovada = false;
+          }
+        });
+      }, 'image/jpeg');
+
     } else {
-      this.backImage = imagemBase64;
-      await this.validarImagem(imagemBase64, 'verso');
-      if (this.validacaoVerso?.e_bi_Angolano && !this.validacaoVerso?.foto_copia) {
-        this.statusMsg = '✅ Documento completo e válido!';
-        this.stopCamera();
-      } else {
-        this.statusMsg = '❌ Verso inválido: ' + (this.validacaoVerso?.motivo || 'Documento não aceite');
-      }
+      this.backImage = canvas.toDataURL('image/jpeg');
+      this.backStatus = 'loading';
+      this.backMensagem = 'A verificar verso...';
+
+      canvas.toBlob(blob => {
+        const ficheiro = new File([blob!], 'bi-verso.jpg', { type: 'image/jpeg' });
+
+        this.serviceBuscar.EnviarFile(ficheiro, 'verso').subscribe({
+          next: (res: any) => {
+            if (!res.e_bi_Angolano || !res.e_original) {
+              this.backStatus = 'error';
+              this.backMensagem = res.motivo || 'Verso inválido. Tente novamente.';
+              this.backImage = null;
+              return;
+            }
+            // Tudo aprovado
+            this.backStatus = 'success';
+            this.backMensagem = 'Verso verificado com sucesso!';
+
+            if (this.frontImage) {
+              this.serviceEnviar.DadosEnviados(this.frontImage);
+            }
+
+            setTimeout(() => {
+              this.stopCamera();
+              this.rota.navigate(['/reconhecimento']);
+            }, 1500);
+          },
+          error: (err: any) => {
+            this.backStatus = 'error';
+            this.backMensagem = err?.error?.erro || 'Erro ao verificar verso. Tente novamente.';
+            this.backImage = null;
+          }
+        });
+      }, 'image/jpeg');
     }
   }
 
-  private async validarImagem(imagemBase64: string, lado: string) {
-    this.enviando = true;
-    this.statusMsg = `Validando ${lado}...`;
-    try {
-      const resultado = await this.servicesBuscar.validarBIComImagem(imagemBase64).toPromise();
-      if (lado === 'frente') this.validacaoFrente = resultado;
-      else this.validacaoVerso = resultado;
-      this.statusMsg = `${lado}: ${resultado?.e_bi_Angolano ? 'Aceito' : 'Rejeitado'}`;
-    } catch (err) {
-      console.error(err);
-      this.statusMsg = `Erro ao validar ${lado}.`;
-    } finally {
-      this.enviando = false;
+  recapturar(fase: 'front' | 'back') {
+    if (fase === 'front') {
+      this.frontImage = null;
+      this.frontStatus = 'idle';
+      this.frontMensagem = '';
+      this.frenteAprovada = false;
+      this.step = 'front';
+      // Limpa o verso também
+      this.backImage = null;
+      this.backStatus = 'idle';
+      this.backMensagem = '';
+    } else {
+      this.backImage = null;
+      this.backStatus = 'idle';
+      this.backMensagem = '';
+      this.step = 'back';
     }
   }
 
@@ -91,16 +157,5 @@ export class Cnebi implements AfterViewInit, OnDestroy {
 
   ngOnDestroy() {
     this.stopCamera();
-  }
-
-  confirmarEnvio() {
-    if (this.validacaoFrente?.e_bi_Angolano && this.validacaoVerso?.e_bi_Angolano &&
-        !this.validacaoFrente?.foto_copia && !this.validacaoVerso?.foto_copia) {
-      const numeroBI = this.validacaoFrente.numero_bi || this.validacaoVerso.numero_bi;
-      this.serviceEnviar.DadosEnviados(numeroBI);
-      this.router.navigate(['/reconhecimento']);
-    } else {
-      alert('Documento não validado pela IA. Capture novamente.');
-    }
   }
 }
