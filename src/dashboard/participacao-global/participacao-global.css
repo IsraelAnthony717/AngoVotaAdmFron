@@ -120,7 +120,7 @@ p{
  opacity: 0.5;
 }
 @media (max-width: 768px) {
- 
+
 /*area so corpo */
 .card {
   background: #1b2433;
@@ -139,5 +139,5 @@ p{
   margin-bottom: 15px;
   font-size: 15px;
   letter-spacing: 1px;
-} 
+}
 }

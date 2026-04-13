@@ -22,6 +22,10 @@ export class SessaoService {
     SessaoVerificar(){
       return this.httSession.get<{autenticado: boolean}>(`${this.sessao}/sessao/validar`, {withCredentials: true})
     }
+
+    logout(){
+      return this.httSession.post(`${this.sessao}/sessao/logout`, {}, {withCredentials: true})
+    }
 }
 
 

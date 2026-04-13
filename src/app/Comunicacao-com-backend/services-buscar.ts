@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { io, Socket } from 'socket.io-client'
 import { environment } from '../../environment/environment';
 
@@ -108,6 +109,10 @@ export class ServicesBuscar {
     return this.http.get(`${this.api}/votos/provincia/contagem`);
   }
 
+  buscarParticipacaoGlobal(): Observable<any> {
+    return this.http.get(`${this.api}/cne/participacao-global`);
+  }
+
   totaisEleitoresProvincias(body: any): Observable<any[]> {
     return this.http.post<any[]>(`${this.api}/cne/MostrarEleitoresAgregados`, { body });
   }
@@ -116,20 +121,86 @@ export class ServicesBuscar {
   // HTTP — Candidatos
   // ============================================================
 
-  // GET /candidatos — Busca a lista de candidatos
+  // GET /candidato — Busca a lista de candidatos
   BuscarCandidatos(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.api}/candidatos`, { withCredentials: true });
+    return this.http.get<any[]>(`${this.api}/candidato`, { withCredentials: true }).pipe(
+      catchError((erro) => {
+        if (erro.status === 404) {
+          return this.http.get<any[]>(`${this.api}/candidatos`, { withCredentials: true });
+        }
+        return throwError(() => erro);
+      })
+    );
   }
 
-  // POST /candidatos — Cria um candidato com foto e fundo (multipart/form-data)
+  // POST /candidato/criar — Cria um candidato com foto e fundo (multipart/form-data)
   // NÃO definir Content-Type — o browser adiciona o boundary automaticamente
   CriarCandidato(formData: FormData): Observable<any> {
-    return this.http.post(`${this.api}/candidatos/criar`, formData, { withCredentials: true });
+  return this.http.post(`${this.api}/candidatos/criar`, formData, { withCredentials: true });
+}
+
+  // GET /candidatos/:id — Busca um candidato pelo ID
+  BuscarCandidatoPorId(id: number): Observable<any> {
+    return this.http.get(`${this.api}/candidatos/${id}`, { withCredentials: true }).pipe(
+      catchError((erro) => {
+        if (erro.status === 404) {
+          return this.http.get(`${this.api}/candidato/${id}`, { withCredentials: true });
+        }
+        return throwError(() => erro);
+      })
+    );
+  }
+
+  // PUT /candidatos/atualizar/:id — Atualiza um candidato com foto e fundo (multipart/form-data)
+  AtualizarCandidato(id: number, formData: FormData): Observable<any> {
+    return this.http.put(`${this.api}/candidatos/atualizar/${id}`, formData, { withCredentials: true }).pipe(
+      catchError((erro) => {
+        if (erro.status === 404) {
+          return this.http.put(`${this.api}/candidato/atualizar/${id}`, formData, { withCredentials: true }).pipe(
+            catchError((erro2) => {
+              if (erro2.status === 404) {
+                return this.http.put(`${this.api}/candidatos/${id}`, formData, { withCredentials: true }).pipe(
+                  catchError((erro3) => {
+                    if (erro3.status === 404) {
+                      return this.http.put(`${this.api}/candidato/${id}`, formData, { withCredentials: true });
+                    }
+                    return throwError(() => erro3);
+                  })
+                );
+              }
+              return throwError(() => erro2);
+            })
+          );
+        }
+        return throwError(() => erro);
+      })
+    );
   }
 
   // DELETE /candidatos/:id — Remove um candidato pelo ID
   ApagarCandidato(id: number): Observable<any> {
-    return this.http.delete(`${this.api}/candidatos/apagar/${id}`, { withCredentials: true });
+    return this.http.delete(`${this.api}/candidatos/${id}`, { withCredentials: true }).pipe(
+      catchError((erro) => {
+        if (erro.status === 404) {
+          return this.http.delete(`${this.api}/candidato/${id}`, { withCredentials: true }).pipe(
+            catchError((erro2) => {
+              if (erro2.status === 404) {
+                return this.http.delete(`${this.api}/candidatos/apagar/${id}`, { withCredentials: true }).pipe(
+                  catchError((erro3) => {
+                    if (erro3.status === 404) {
+                      return this.http.delete(`${this.api}/candidato/apagar/${id}`, { withCredentials: true });
+                    }
+                    return throwError(() => erro3);
+                  })
+                );
+              }
+              return throwError(() => erro2);
+            })
+          );
+        }
+        return throwError(() => erro);
+      })
+    );
   }
 
   // ============================================================
@@ -163,5 +234,20 @@ export class ServicesBuscar {
     }
     return id
   }
+
+
+  // ============================================================
+// HTTP — Total de eleitores registados
+// ============================================================
+// services-buscar.ts
+getTotalEleitoresRegistados(): Observable<{ total: number }> {
+  return this.http.get<{ total: number }>(`${this.api}/cne/total-eleitores`, { withCredentials: true });
+}
+
+
+
+
+
+
 
 }

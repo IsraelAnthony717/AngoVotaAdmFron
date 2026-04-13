@@ -1,10 +1,10 @@
-
 <div class="dashboard">
 
   <div class="card">
     <p class="label">Eleitores Registrados</p>
     <i class="fa-solid fa-user icon"></i>
-    <h2>14.5M</h2>
+    <h2>{{ formatNumber(totalEleitores) }}</h2>
+    <button (click)="carregarTotalEleitores()">Testar</button>
     <span class="badge success">↑ +2.4%</span>
   </div>
 

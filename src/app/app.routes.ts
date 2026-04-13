@@ -19,6 +19,7 @@ import { PaginaPrincipal } from './Componente-pagina-inicial/pagina-principal/pa
 import { CriaPerfilCne } from './cne-atctivits/criar-perfil-cne/criar-perfil-cne';
 import { Resultados } from './resultados/resultados';
 import { CriarCandidato } from './cne-atctivits/criar-candidato/criar-candidato';
+import { authguardGuard } from './Guard/authguard-guard';
 
 
 

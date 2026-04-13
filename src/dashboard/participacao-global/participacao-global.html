@@ -1,16 +1,12 @@
-
 <body>
- <!--corpo inicial-->
   <div class="card">
-   <div class="barra">
-    <h3 class="title">Participação Global</h3>
-      </div>
-      <!--organizacao do interior do corpo-->
+    <div class="barra">
+      <h3 class="title">Participação Global</h3>
+    </div>
+
     <div class="content">
-     <!-- borda quadrada e clara do circul0-->
       <div class="circle-container">
-       <!--area do circulo-->
-        <svg width="200" height="200">
+        <svg width="100%" height="100%" viewBox="0 0 200 200">
           <circle
             class="bg"
             cx="100"
@@ -22,21 +18,22 @@
             cx="100"
             cy="100"
             r="80"
+            [attr.stroke-dashoffset]="strokeDashoffset"
           />
         </svg>
 
         <div class="percentage">
-          <h1 id="percent">52%</h1>
+          <h1>{{ afluencia }}%</h1>
           <p>Afluência</p>
         </div>
       </div>
-<!--as bolinhas coloridas-->
+
       <div class="stats">
         <div class="item">
           <span class="dot blue"></span>
           <div>
             <p>Votaram</p>
-            <strong id="voted">1,77 mil</strong>
+            <strong>{{ votaram | number }}</strong>
           </div>
         </div>
 
@@ -44,7 +41,7 @@
           <span class="dot gray"></span>
           <div>
             <p>Abstenção</p>
-            <strong id="abstention">100</strong>
+            <strong>{{ abstencao | number }}</strong>
           </div>
         </div>
       </div>

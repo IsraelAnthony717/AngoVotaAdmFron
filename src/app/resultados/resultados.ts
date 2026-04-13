@@ -3,6 +3,8 @@ import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { catchError } from 'rxjs/operators';
+import { throwError } from 'rxjs';
 import { environment } from '../../environment/environment';
 import { ServicesBuscar } from '../Comunicacao-com-backend/services-buscar';
 import { Menu } from '../dashboard/menu/menu';
@@ -105,33 +107,47 @@ ngOnInit(){
 
         
  //area de numero de partido
-        this.http.get(`${environment.apiUrl}/candidato/total`)
-.subscribe({
-next: (resposta: any) => {
-        console.log('Resposta da API:', resposta);
-        this.totalCandidatos = resposta.total;
-        console.log('Total atualizado para:', this.totalCandidatos);
-          
-          // Força atualização da view
-         this.cdr.detectChanges();},
-error: (erro) => {
-         console.error('Erro:', erro);}});
+this.http.get(`${environment.apiUrl}/candidato/total`).pipe(
+          catchError((erro) => {
+            if (erro.status === 404) {
+              return this.http.get(`${environment.apiUrl}/candidatos/total`);
+            }
+            return throwError(() => erro);
+          })
+        ).subscribe({
+          next: (resposta: any) => {
+            console.log('Resposta da API:', resposta);
+            this.totalCandidatos = resposta.total;
+            console.log('Total atualizado para:', this.totalCandidatos);
+            
+            // Força atualização da view
+            this.cdr.detectChanges();
+          },
+          error: (erro) => {
+            console.error('Erro:', erro);
+          }
+        });
       
-
-
-
           //  BUSCAR LISTA DE CANDIDATOS 
-         this.http.get(`${environment.apiUrl}/candidato`)
-.subscribe({
-next: (resposta: any) => {
-          console.log('Resposta candidatos:', resposta);
-          this.candidatos = [...resposta]; // ATRIBUI OS DADOS
-          console.log('Candidatos atualizados:', this.candidatos);
-          console.log('Quantidade:', this.candidatos.length);
-          this.cdr.detectChanges();}, // FORÇA ATUALIZAÇÃO 
-          
-error: (erro) => {
-          console.error('Erro nos candidatos:', erro);}});
+         this.http.get(`${environment.apiUrl}/candidato`).pipe(
+           catchError((erro) => {
+             if (erro.status === 404) {
+               return this.http.get(`${environment.apiUrl}/candidatos`);
+             }
+             return throwError(() => erro);
+           })
+         ).subscribe({
+           next: (resposta: any) => {
+             console.log('Resposta candidatos:', resposta);
+             this.candidatos = [...resposta]; // ATRIBUI OS DADOS
+             console.log('Candidatos atualizados:', this.candidatos);
+             console.log('Quantidade:', this.candidatos.length);
+             this.cdr.detectChanges();
+           }, // FORÇA ATUALIZAÇÃO 
+           error: (erro) => {
+             console.error('Erro nos candidatos:', erro);
+           }
+         });
 
     
 }

@@ -1,6 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import {  ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { catchError } from 'rxjs/operators';
+import { throwError } from 'rxjs';
+import { environment } from '../../../environment/environment';
 
 @Component({
   selector: 'app-perfil-candidato',
@@ -9,39 +12,104 @@ import {  ChangeDetectorRef, Component, OnInit } from '@angular/core';
   styleUrl: './perfil-candidato.css',
 })
 export class PerfilCandidato  implements OnInit{
- totalCandidatos: number = 0;
-  candidatos: any[] = []; // Array para guardar os candidatos
+  totalCandidatos: number = 0;
+  candidatos: any[] = [];
+  carregando: boolean = true;
+  erro: string = '';
 
+  candidatosMockados = [
+    {
+      id: 1,
+      numero: 1,
+      nome: 'João Silva',
+      partido: 'Partido A',
+      idade: 45,
+      foto_url: 'https://via.placeholder.com/300x400?text=João+Silva',
+      slogan: 'Mudança para o futuro',
+      descricao: 'Candidato com experiência em gestão pública',
+      backgroundurl: 'https://via.placeholder.com/1200x400?text=João+Silva',
+      criando_em: new Date()
+    },
+    {
+      id: 2,
+      numero: 2,
+      nome: 'Maria Santos',
+      partido: 'Partido B',
+      idade: 38,
+      foto_url: 'https://via.placeholder.com/300x400?text=Maria+Santos',
+      slogan: 'Por um país melhor',
+      descricao: 'Defensora dos direitos sociais',
+      backgroundurl: 'https://via.placeholder.com/1200x400?text=Maria+Santos',
+      criando_em: new Date()
+    }
+  ];
 
-  constructor(private http: HttpClient,private cdr: ChangeDetectorRef) {}
+  constructor(private http: HttpClient, private cdr: ChangeDetectorRef) {}
 
   ngOnInit() {
-    // 1. BUSCAR TOTAL (igual ao seu)
-    this.http.get('http://localhost:3003/candidato/total')
-      .subscribe({
+    this.buscarCandidatos();
+  }
+
+  buscarCandidatos() {
+    this.carregando = true;
+    this.erro = '';
+    console.log('🔵 Iniciando busca de candidatos...');
+
+    this.http.get(`${environment.apiUrl}/candidato/total`).pipe(
+      catchError((erro) => {
+        if (erro.status === 404) {
+          return this.http.get(`${environment.apiUrl}/candidatos/total`);
+        }
+        return throwError(() => erro);
+      })
+    ).subscribe({
         next: (resposta: any) => {
-          console.log('Resposta total:', resposta);
+          console.log('✅ Total de candidatos:', resposta.total);
           this.totalCandidatos = resposta.total;
-          console.log('Total atualizado:', this.totalCandidatos);
           this.cdr.detectChanges();
         },
         error: (erro) => {
-          console.error('Erro no total:', erro);
+          console.error('❌ Erro no total:', erro);
+          this.totalCandidatos = this.candidatos.length || this.candidatosMockados.length;
         }
       });
 
-    // 2. BUSCAR LISTA DE CANDIDATOS (MESMO PADRÃO)
-    this.http.get('http://localhost:3003/candidato')
-      .subscribe({
+    this.http.get(`${environment.apiUrl}/candidato`).pipe(
+      catchError((erro) => {
+        if (erro.status === 404) {
+          return this.http.get(`${environment.apiUrl}/candidatos`);
+        }
+        return throwError(() => erro);
+      })
+    ).subscribe({
         next: (resposta: any) => {
-          console.log('Resposta candidatos:', resposta);
-          this.candidatos = resposta; // ATRIBUI OS DADOS
-          console.log('Candidatos atualizados:', this.candidatos);
-          console.log('Quantidade:', this.candidatos.length);
-          this.cdr.detectChanges(); // FORÇA ATUALIZAÇÃO
+          console.log('✅ Candidatos recebidos:', resposta);
+          
+          if (resposta && Array.isArray(resposta) && resposta.length > 0) {
+            // Adicionar idade padrão se não existir (para compatibilidade)
+            this.candidatos = resposta.map(c => ({
+              ...c,
+              idade: c.idade || 0
+            }));
+            console.log('✅ ' + resposta.length + ' candidatos carregados');
+          } else {
+            console.warn('⚠️ Nenhum candidato no banco. Usando dados mockados.');
+            this.candidatos = this.candidatosMockados;
+            this.erro = 'Exibindo dados de teste (mockados)';
+          }
+          
+          this.carregando = false;
+          this.cdr.detectChanges();
         },
-        error: (erro) => {
-          console.error('Erro nos candidatos:', erro);
+        error: (erro: any) => {
+          console.error('❌ Erro ao buscar candidatos:', erro);
+          console.error('Status:', erro.status);
+          console.error('Mensagem do erro:', erro.error?.error || erro.message);
+          console.warn('⚠️ Usando dados mockados como fallback');
+          this.candidatos = this.candidatosMockados;
+          this.erro = `Erro ${erro.status}: ${erro.error?.error || erro.statusText}`;
+          this.carregando = false;
+          this.cdr.detectChanges();
         }
       });
   }
