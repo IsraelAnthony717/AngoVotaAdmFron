@@ -1,7 +1,5 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { catchError } from 'rxjs/operators';
-import { throwError } from 'rxjs';
 import { environment } from '../../../environment/environment';
 
 @Component({
@@ -9,9 +7,8 @@ import { environment } from '../../../environment/environment';
   templateUrl: './painel-candidato.html',
   styleUrls: ['./painel-candidato.css']
 })
-
 export class PainelCandidato implements OnInit {
-  totalPartidos: number = 0;  // Mude para number
+  totalPartidos: number = 0;
   totalCandidatos: number = 0;
 
   constructor(
@@ -21,44 +18,36 @@ export class PainelCandidato implements OnInit {
 
   ngOnInit() {
     // Buscar total de candidatos
-    this.http.get(`${environment.apiUrl}/candidatos/total`).pipe(
-      catchError((erro) => {
-        console.error('Erro ao buscar total:', erro);
-        return throwError(() => erro);
-      })
-    ).subscribe({
-      next: (resposta: any) => {
-        console.log('Total de candidatos:', resposta);
-        this.totalCandidatos = resposta.total;
-        this.cdr.detectChanges();
-      },
-      error: (erro) => {
-        console.error('Erro:', erro);
-        this.totalCandidatos = 0;
-      }
-    });
-
-    // Buscar total de partidos (se tiver um endpoint específico)
-    // Por enquanto, vamos contar partidos únicos dos candidatos
-    this.http.get(`${environment.apiUrl}/candidatos`).pipe(
-      catchError((erro) => {
-        console.error('Erro ao buscar candidatos:', erro);
-        return throwError(() => erro);
-      })
-    ).subscribe({
-      next: (resposta: any) => {
-        if (resposta && Array.isArray(resposta)) {
-          // Contar partidos únicos
-          const partidosUnicos = new Set(resposta.map((c: any) => c.partido));
-          this.totalPartidos = partidosUnicos.size;
-          console.log('Total de partidos:', this.totalPartidos);
+    this.http.get<{ total: number }>(`${environment.apiUrl}/candidatos/total`)
+      .subscribe({
+        next: (resposta) => {
+          console.log('Total de candidatos:', resposta.total);
+          this.totalCandidatos = resposta.total;
           this.cdr.detectChanges();
+        },
+        error: (erro) => {
+          console.error('Erro ao buscar total de candidatos:', erro);
+          this.totalCandidatos = 0;
         }
-      },
-      error: (erro) => {
-        console.error('Erro:', erro);
-        this.totalPartidos = 0;
-      }
-    });
+      });
+
+    // Buscar lista de candidatos para contar partidos únicos
+    this.http.get<any[]>(`${environment.apiUrl}/candidatos`)
+      .subscribe({
+        next: (resposta) => {
+          if (resposta && Array.isArray(resposta)) {
+            const partidosUnicos = new Set(resposta.map(c => c.partido));
+            this.totalPartidos = partidosUnicos.size;
+            console.log('Total de partidos:', this.totalPartidos);
+          } else {
+            this.totalPartidos = 0;
+          }
+          this.cdr.detectChanges();
+        },
+        error: (erro) => {
+          console.error('Erro ao buscar candidatos para contagem de partidos:', erro);
+          this.totalPartidos = 0;
+        }
+      });
   }
 }

@@ -140,16 +140,10 @@ export class ServicesBuscar {
 }
 
   // GET /candidatos/:id — Busca um candidato pelo ID
-  BuscarCandidatoPorId(id: number): Observable<any> {
-    return this.http.get(`${this.api}/candidatos/${id}`, { withCredentials: true }).pipe(
-      catchError((erro) => {
-        if (erro.status === 404) {
-          return this.http.get(`${this.api}/candidato/${id}`, { withCredentials: true });
-        }
-        return throwError(() => erro);
-      })
-    );
-  }
+  // GET /candidatos — lista de candidatos
+BuscarCandidatosPorId(): Observable<any[]> {
+  return this.http.get<any[]>(`${this.api}/candidatos`, { withCredentials: true });
+}
 
   // PUT /candidatos/atualizar/:id — Atualiza um candidato com foto e fundo (multipart/form-data)
   AtualizarCandidato(id: number, formData: FormData): Observable<any> {
