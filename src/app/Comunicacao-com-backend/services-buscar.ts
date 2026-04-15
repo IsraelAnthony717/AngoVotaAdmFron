@@ -214,7 +214,7 @@ BuscarCandidatosPorId(): Observable<any[]> {
     formData.append('imagem', ficheiro);
     formData.append('face', face);
     formData.append('utilizadorId', this.ObterIdDoUtilizador());
-    return this.http.post(`${this.api}/analisar/imagem`, formData);
+    return this.http.post(`${this.api}/validar-bi`, formData);
   }
 
   private ObterIdDoUtilizador(): string{
