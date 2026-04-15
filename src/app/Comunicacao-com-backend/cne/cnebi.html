@@ -18,6 +18,26 @@
 
   <main class="conteudo">
 
+
+<!-- Dentro de <main class="conteudo">, antes do grid-principal -->
+<div *ngIf="erroGlobal" class="alerta-global">
+  <div class="alerta-conteudo">
+    <span class="icone-alerta">⚠️</span>
+    <span>{{ erroGlobal }}</span>
+    <button (click)="erroGlobal = null" class="fechar-alerta">✕</button>
+  </div>
+</div>
+
+<!-- Opcional: painel de logs (útil para depuração) -->
+<details class="painel-logs">
+  <summary>📋 Ver logs do sistema (clique para expandir)</summary>
+  <div *ngFor="let log of logsSistema" class="linha-log">
+    {{ log }}
+  </div>
+</details>
+
+
+
     <div class="titulo-area">
       <div class="passo-badge">Processo de Identificação</div>
       <h1>Captura do Bilhete de Identidade</h1>

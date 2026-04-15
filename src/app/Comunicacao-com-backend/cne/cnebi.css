@@ -333,3 +333,68 @@ footer {
   .cabecalho { padding: 0.8rem 1rem; }
   .badge-seguro { display: none; }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+.alerta-global {
+  background-color: #ffdddd;
+  border-left: 5px solid #d32f2f;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  color: #b71c1c;
+  font-weight: 500;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  animation: fadeIn 0.3s ease;
+}
+
+.alerta-conteudo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.icone-alerta {
+  font-size: 1.4rem;
+}
+
+.fechar-alerta {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #b71c1c;
+  margin-left: auto;
+}
+
+.painel-logs {
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-top: 20px;
+  font-size: 0.8rem;
+  font-family: monospace;
+}
+
+.linha-log {
+  border-top: 1px solid #ddd;
+  padding: 4px 0;
+  color: #333;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
