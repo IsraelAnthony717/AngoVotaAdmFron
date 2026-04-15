@@ -19,7 +19,7 @@
       Conexão Segura
    </span>
    -->
-  
+
    <button class="icon-btn">
     <span class="material-symbols-outlined">help</span>
   </button>
@@ -48,7 +48,7 @@
         <p>Etapa 3 de 3</p>
 
       </div>
-      
+
     </div>
 
     <div class="ConfAuth">
@@ -70,7 +70,7 @@
        </div>
 
 
-       
+
 
     </div>
 
@@ -80,7 +80,7 @@
       <span class="material-symbols-outlined dica-icon logoVerify dica">info</span>
       <h4>Dica de segurança</h4>
       </div>
-      
+
       <p>Certifica-se de estar em um ambiente bem iluminado.
          Mantenha o rosto centralizado e evite sombras.
         Não use óculos escuros ou acessórios que cubram o rosto.</p>
@@ -98,6 +98,7 @@
       <div class="webcam-liveness-container">
         <webcam [trigger]="triggerObservable"
          (imageCapture)="minhaSelfie($event)"
+         [videoOptions]="{ facingMode: 'user' }"
           class="webcam-liveness">~
         </webcam>
       </div>
@@ -106,19 +107,19 @@
       <div class="Operacoes">
 
         <div class="content-reconhecimento">
-        
+
           <h1>Reconhecimento <span>Facial</span></h1>
-    
+
           <p>Mantenha o rosto centralizado.</p>
-    
+
         </div>
         <div class="instrucoes">
           <span class="material-symbols-outlined logoInstrucoes">
             {{ iconeAtual }}
           </span>
-         
+
         </div>
-        
+
         <div class="ajudas">
           <div class="auxilio">
             <span class="material-symbols-outlined">face</span>
@@ -128,26 +129,27 @@
             <span class="material-symbols-outlined">brightness_3</span>
             <p>Evite sombras e reflexos</p>
           </div>
-          
+
         </div>
-    
-    
+
+
         <div class="btns">
           <button (click)="tirarSelfie()" class="btn">Tirar Selfie</button>
         </div>
-  
+
       </div>
-  
+
       }
-  
+
 
     @if (aparecer) {
          <div class="webcam-liveness-container">
    <!--WEBCAM-->
     <webcam
-    [trigger]="triggerLivenessObservable" 
+    [trigger]="triggerLivenessObservable"
     (imageCapture)="framesCapturada($event)"
     [mirrorImage]="'auto'"
+    [videoOptions]="{ facingMode: 'user' }"
     class="webcam-liveness">
     </webcam>
 
@@ -167,7 +169,7 @@
   <path d="M44 60 Q50 63 56 60" />
 
   <!-- SETA ESQUERDA -->
-  
+
 <polyline
 points="26,52 18,52 22,48 18,52 22,56"
 class="arrow left"
@@ -182,21 +184,21 @@ class="arrow right"
 
     </div>
 
-    
+
     <div class="Operacoes">
 
       <div class="content-reconhecimento">
-      
+
         <h1>Reconhecimento<span>Facial</span></h1>
-  
+
         <p>Mantenha o rosto centralizado.</p>
-  
+
       </div>
       <div class="instrucoes">
         <span class="material-symbols-outlined logoInstrucoes">
           {{ iconeAtual }}
         </span>
-        Instruções: 
+        Instruções:
         <p>{{instrucoesAtual}}</p>
 
         @if(livenessStatus){
@@ -205,7 +207,7 @@ class="arrow right"
           </div>
       }
       </div>
-      
+
       <div class="ajudas">
         <div class="auxilio">
           <span class="material-symbols-outlined">face</span>
@@ -215,10 +217,10 @@ class="arrow right"
           <span class="material-symbols-outlined">brightness_3</span>
           <p>Evite sombras e reflexos</p>
         </div>
-        
+
       </div>
-  
-  
+
+
       <div class="btns">
         <button (click)="IniciarLiveness()"class="btn" >Iniciar</button>
         <button (click)="pararLiveness()" class="btn">Parar</button>
@@ -228,10 +230,10 @@ class="arrow right"
 
     }
 
-   
-  
-    
-   
+
+
+
+
 
 
 
@@ -243,9 +245,9 @@ class="arrow right"
   </div>
 
 
-  
+
  </div>
- 
+
 
 
 
@@ -270,24 +272,24 @@ class="arrow right"
     <h3>Verificação de Vivacidade (Liveness)</h3>
   <p>Por favor, siga as instruções abaixo para confirmar que és uma pessoa real:</p>
 
-  <div class="webcam"> 
+  <div class="webcam">
     <webcam
-    [trigger]="triggerLivenessObservable" 
+    [trigger]="triggerLivenessObservable"
     (imageCapture)="framesCapturada($event)"
     [width]="300"
     [height]="300"
     [mirrorImage]="'auto'">
   </webcam>
 </div>
- 
+
   <p>instruções: {{instrucoesAtual}}</p>
-  
+
 @if(livenessStatus){
     <div [ngClass]="{'sucesso': livenessPassed, 'erro': !livenessPassed}">
     {{ livenessStatus }}
     </div>
 }
-  
+
 
   <button (click)="IniciarLiveness()">Iniciar O liveness</button>
 
@@ -298,7 +300,7 @@ class="arrow right"
     <div class="esquerda-header">
       <h2>Verificação De identidade</h2>
     </div>
-  
+
     <div class="direita-header">
       <button class="ajuda"></button>
       <button class="configuracoes"></button>
@@ -306,46 +308,46 @@ class="arrow right"
   </header>
 
   <div class="principal">
-  
-  
+
+
   <div class="container">
       <div class="content">
-  
+
     <h1>Capture a frente do seu Bilhete de identidade</h1>
-  
+
     <p>Posiciona a parte frontal do seu documento</p>
-  
+
       </div>
-  
+
      <div class="container-fundo">
         <div class="container-webcam">
-          <webcam 
+          <webcam
             [trigger]="triggerObservable"
            (imageCapture)="SerfieBI($event)"
             [mirrorImage]="'auto'"
             class="webcam">
-            
+
           </webcam>
         </div>
-        
-  
-        
-  
+
+
+
+
       </div>
-  
+
       <button class="trocarCamera"></button>
-  
+
       <button class="tirarFoto">Tirar foto</button>
-     
-  
-  
+
+
+
   </div>
-  
+
 </div>
 
 
 -->
-  
+
 
 
 <!--Parte do upload da foto do BI-->
@@ -383,4 +385,3 @@ class="arrow right"
 
 
 Reconhecimento facial aprovado! Distância: 0.5043-->
- 
